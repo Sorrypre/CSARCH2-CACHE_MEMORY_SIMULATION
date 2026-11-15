@@ -1,6 +1,6 @@
 import { selectVictim } from "./Policies.js";
 
-class CacheSimulator {
+export class CacheSimulator {
     /*
     This class simulates a cache memory system.
     It takes in the number of blocks, block size, and read policy as parameters.
@@ -18,20 +18,81 @@ class CacheSimulator {
         this.numberOfBlocks = numberOfBlocks;
         this.blockSize = blockSize;
         this.readPolicy = readPolicy;
-        replacementPolicy = "LRU";      // default replacement policy is LRU
+        this.replacementPolicy = replacementPolicy;      // default replacement policy is LRU
+
         this.mainMemory = 1024          //1024 bytes of main memory
-        this.cacheSize = this.numberOfBlocks * this.blockSize;
-        this.numOfSets = this.cacheSize / this.blockSize;
         this.associativity = 4          //4-way block set associative cache
+        this.cacheSize = this.numberOfBlocks * this.blockSize;
+        this.numOfSets = this.numberOfBlocks / this.associativity;
+
+        this.reset()
+    }
+
+
+    /*
+    This method resets the cache simulator to its initial state.
+     */
+    reset() {
+        this.step = 0; // Step counter to track the order of accesses
+        this.cache_hits = 0; // Counter for cache hits
+        this.cache_misses = 0; // Counter for cache misses
+        this.snapshots = []; // Array to store snapshots of the cache state
 
         this.cache = Array.from({ length: this.numOfSets }, () =>
             Array.from({ length: this.associativity }, () => ({
-                valid: false,           // Indicates if the cache block is valid
-                tag: null,              //Indicates the tag of the cache block
-                lastUsed: 0,            //Indicates the last time the cache block was used
-                blockNumber: null,      //Indicates the block number of the cache block
+                valid: false,
+                tag: null,
+                lastUsed: 0,
+                blockNumber: null,
             }))
         );
+    }
+
+    /*
+    This method runs a sequence of block accesses on the cache simulator.
+     */
+    run(sequence) {
+        this.reset(); // Reset the cache before running the sequence
+
+        for (const blockNumber of sequence) {
+            this.accessBlock(blockNumber)
+        }
+
+        return this.snapshots; // Return the snapshots of the cache state
+    }
+
+    /*
+    Helper function to record the state of the cache after each access.
+        blockNumber: The block number being accessed.
+        setIndex: The index of the set in the cache.
+        tag: The tag of the block being accessed.
+        way: The way (0-3) in the set where the block is stored.
+        status: "HIT" or "MISS" indicating whether the access was a hit or a miss.
+
+     */
+    recordSnapshot({ blockNumber, setIndex, tag, way, status, evictedBlock }) {
+        const cacheGridCopy = structuredClone(this.cache); // Deep copy of the cache state
+        let logMessage = "";
+
+        if (status === "HIT") {
+            logMessage = `Step ${this.step}: Access Block ${blockNumber} (Set ${setIndex}, Tag ${tag}) - HIT [Way ${way}]`;
+        } else if (status === "MISS" && evictedBlock != null) {
+            logMessage = `Step ${this.step}: Access Block ${blockNumber} (Set ${setIndex}, Tag ${tag}) - MISS [Evicted Block ${evictedBlock} at Way ${way}]`;
+        } else {
+            logMessage = `Step ${this.step}: Access Block ${blockNumber} (Set ${setIndex}, Tag ${tag}) - MISS [Loaded into empty Way ${way}]`;
+        }
+
+        this.snapshots.push({
+            step: this.step,
+            blockNumber,
+            setIndex,
+            tag,
+            way,
+            status,
+            evictedBlock,
+            logMessage,
+            cacheGrid: cacheGridCopy,
+        });
     }
 
     /*
@@ -39,22 +100,22 @@ class CacheSimulator {
     The block number is the index of the block in the main memory.
      */
     accessBlock(blockNumber) {
-        if (blockNumber < 0 || blockNumber >= this.mainMemory / this.blockSize) {
-            throw new Error("Block number is out of bounds.");
-        }
+        if (blockNumber < 0 || blockNumber >= this.mainMemoryBlocks) {
+            throw new Error(`Block number ${blockNumber} is out of bounds (0–1023).`);
+            }
         this.step += 1; // Increment the step counter for each access
 
         const setIndex = blockNumber % this.numOfSets;
         const tag = Math.floor(blockNumber / this.numOfSets);
-        const set = this.cache[this.setIndex];
+        const set = this.cache[setIndex];
 
-        // Check if the block is already in the cache
-        const isHit = set.findIndex((block) => block.valid && block.tag === tag);
-        if (isHit !== -1) {
-            // Cache hit
-            set[isHit].lastUsed = this.step; // Update the last used time
-            this.cache_hits += 1; // Increment the hit counter
-            return true; // Return true for a cache hit
+        //Check if Cache Hit
+        const hitIndex = set.findIndex((block) => block.valid && block.tag === tag);
+        if (hitIndex !== -1) {
+            set[hitIndex].lastUsed = this.step;
+            this.cache_hits += 1;
+            this.recordSnapshot({ blockNumber, setIndex, tag, way: hitIndex, status: "HIT", evictedBlock: null });
+            return true;
         }
 
         //Cache Miss
@@ -64,24 +125,27 @@ class CacheSimulator {
         const emptyBlockIndex = set.findIndex((block) => !block.valid);
 
         if (emptyBlockIndex !== -1) {
-            // If there is an empty block, use it
             set[emptyBlockIndex] = {
                 valid: true,
-                tag: tag,
+                tag,
                 lastUsed: this.step,
-                blockNumber: blockNumber,
+                blockNumber,
             };
+            this.recordSnapshot({ blockNumber, setIndex, tag, way: emptyBlockIndex, status: "MISS", evictedBlock: null });
         } else {
-            // Set is full, replace a block based on the replacement policy
-            // INSERT LRU and MRU replacement function here
-            const victimWay = selectVictim(set, this.replacementPolicy); // LRU -> oldest lastUsed, MRU -> newest lastUsed
+            // Cache Miss & Set Full: Evict via LRU or MRU
+            const victimWay = selectVictim(set, this.replacementPolicy);
+            const evictedBlock = set[victimWay].blockNumber;
+
             set[victimWay] = {
                 valid: true,
-                tag: tag,
-                lastUsed: this.step,        // the new block is now the most recently used
-                blockNumber: blockNumber,
+                tag,
+                lastUsed: this.step,
+                blockNumber,
             };
+            this.recordSnapshot({ blockNumber, setIndex, tag, way: victimWay, status: "MISS", evictedBlock });
         }
+        return false;
     }
 }
 
