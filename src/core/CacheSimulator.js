@@ -1,3 +1,5 @@
+import { selectVictim } from "./Policies.js";
+
 class CacheSimulator {
     /*
     This class simulates a cache memory system.
@@ -72,6 +74,13 @@ class CacheSimulator {
         } else {
             // Set is full, replace a block based on the replacement policy
             // INSERT LRU and MRU replacement function here
+            const victimWay = selectVictim(set, this.replacementPolicy); // LRU -> oldest lastUsed, MRU -> newest lastUsed
+            set[victimWay] = {
+                valid: true,
+                tag: tag,
+                lastUsed: this.step,        // the new block is now the most recently used
+                blockNumber: blockNumber,
+            };
         }
     }
 }
