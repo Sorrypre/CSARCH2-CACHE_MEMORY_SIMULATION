@@ -12,7 +12,7 @@
 *As required, here are the full specifications and parameters of the cache simulation system:*
 
 * **Cache Operations Compared:** 4-Way BSA + LRU vs. 4-Way BSA + MRU
-* **Main Memory Size:** 1024 blocks (Fixed)[cite: 1]
+* **Main Memory Size:** 1024 blocks (Fixed)
 * **Number of Cache Blocks:** [Insert your value: e.g., 16] (Power of 2, minimum 4)
 * **Block Size:** [Insert your value: e.g., 16 words] (Power of 2, minimum 2 words)
 * **Read Policy:** [Insert your chosen policy: Non-load-through OR Load-through]
