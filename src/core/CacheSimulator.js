@@ -31,6 +31,49 @@ class CacheSimulator {
             }))
         );
     }
+
+    /*
+    This method simulates accessing a block in the cache.
+    The block number is the index of the block in the main memory.
+     */
+    accessBlock(blockNumber) {
+        if (blockNumber < 0 || blockNumber >= this.mainMemory / this.blockSize) {
+            throw new Error("Block number is out of bounds.");
+        }
+        this.step += 1; // Increment the step counter for each access
+
+        const setIndex = blockNumber % this.numOfSets;
+        const tag = Math.floor(blockNumber / this.numOfSets);
+        const set = this.cache[this.setIndex];
+
+        // Check if the block is already in the cache
+        const isHit = set.findIndex((block) => block.valid && block.tag === tag);
+        if (isHit !== -1) {
+            // Cache hit
+            set[isHit].lastUsed = this.step; // Update the last used time
+            this.cache_hits += 1; // Increment the hit counter
+            return true; // Return true for a cache hit
+        }
+
+        //Cache Miss
+        this.cache_misses += 1; // Increment the miss counter
+
+        // Find an empty block in the set
+        const emptyBlockIndex = set.findIndex((block) => !block.valid);
+
+        if (emptyBlockIndex !== -1) {
+            // If there is an empty block, use it
+            set[emptyBlockIndex] = {
+                valid: true,
+                tag: tag,
+                lastUsed: this.step,
+                blockNumber: blockNumber,
+            };
+        } else {
+            // Set is full, replace a block based on the replacement policy
+            // INSERT LRU and MRU replacement function here
+        }
+    }
 }
 
 /*
