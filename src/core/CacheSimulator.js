@@ -100,7 +100,7 @@ export class CacheSimulator {
     The block number is the index of the block in the main memory.
      */
     accessBlock(blockNumber) {
-        if (blockNumber < 0 || blockNumber >= this.mainMemoryBlocks) {
+        if (blockNumber < 0 || blockNumber >= this.mainMemory) {
             throw new Error(`Block number ${blockNumber} is out of bounds (0–1023).`);
             }
         this.step += 1; // Increment the step counter for each access
