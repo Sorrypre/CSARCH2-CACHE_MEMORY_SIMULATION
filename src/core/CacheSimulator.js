@@ -6,22 +6,31 @@ class CacheSimulator {
      */
     constructor(numberOfBlocks, blockSize, readPolicy, replacementPolicy) {
         if (numberOfBlocks < 4 && !isPowerOfTwo(numberOfBlocks)) {
-            throw new Error("Number of blocks must be at least 4 and a power of two.");
+            throw new Error("numberOfBlocks must be at least 4 and a power of two.");
         }
 
         if (blockSize < 2 && !isPowerOfTwo(blockSize)) {
-        throw new Error("Block size must be at least 2 and a power of two.");
+        throw new Error("blockSize must be at least 2 and a power of two.");
         }
 
         this.numberOfBlocks = numberOfBlocks;
         this.blockSize = blockSize;
         this.readPolicy = readPolicy;
-        replacementPolicy = "LRU"; // default replacement policy is LRU
-    }
+        replacementPolicy = "LRU";      // default replacement policy is LRU
+        this.mainMemory = 1024          //1024 bytes of main memory
+        this.cacheSize = this.numberOfBlocks * this.blockSize;
+        this.numOfSets = this.cacheSize / this.blockSize;
+        this.associativity = 4          //4-way block set associative cache
 
-    mainMemory = 1024  //1024 bytes of main memory
-    cacheSize = this.numberOfBlocks * this.blockSize;
-    numOfSets = this.cacheSize / this.blockSize;
+        this.cache = Array.from({ length: this.numOfSets }, () =>
+            Array.from({ length: this.associativity }, () => ({
+                valid: false,           // Indicates if the cache block is valid
+                tag: null,              //Indicates the tag of the cache block
+                lastUsed: 0,            //Indicates the last time the cache block was used
+                blockNumber: null,      //Indicates the block number of the cache block
+            }))
+        );
+    }
 }
 
 /*
