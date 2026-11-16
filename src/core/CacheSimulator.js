@@ -155,6 +155,6 @@ export class CacheSimulator {
 /*
 This function checks if a given number is a power of two.
  */
-const isPowerOfTwo = (n) => {
+export const isPowerOfTwo = (n) => {
     return n > 0 && (n & (n - 1)) === 0;
 }
