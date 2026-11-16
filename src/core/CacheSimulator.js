@@ -7,11 +7,11 @@ export class CacheSimulator {
     The cache size is calculated based on the number of blocks and block size.
      */
     constructor(numberOfBlocks, blockSize, readPolicy, replacementPolicy) {
-        if (numberOfBlocks < 4 && !isPowerOfTwo(numberOfBlocks)) {
+        if (numberOfBlocks < 4 || !isPowerOfTwo(numberOfBlocks)) {
             throw new Error("numberOfBlocks must be at least 4 and a power of two.");
         }
 
-        if (blockSize < 2 && !isPowerOfTwo(blockSize)) {
+        if (blockSize < 2 || !isPowerOfTwo(blockSize)) {
         throw new Error("blockSize must be at least 2 and a power of two.");
         }
 
