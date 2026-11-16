@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { CacheSimulator, isPowerOfTwo } from "../src/core/CacheSimulator";
 import { LRU, MRU, selectVictim } from "../src/core/Policies";
+import { NON_LOAD_THROUGH, LOAD_THROUGH } from "../src/core/StatsCalculator"
 
 // Design of the test follow standard QA patterns
 // AAA 
@@ -40,7 +41,7 @@ describe('CacheSimulator', () => {
     describe('constructor', () => {
         test('initializes cache geometry correctly', () => {
             // Simulated Cache Memory: 8 blocks, blockSize 4, 4-way associative so 2 sets
-            const simulatedCache = new CacheSimulator(8, 4, 'read-through', LRU);
+            const simulatedCache = new CacheSimulator(8, 4, LOAD_THROUGH, LRU);
 
             expect(simulatedCache.cacheSize).toBe(32); // 8 * 4 = 32
             expect(simulatedCache.numOfSets).toBe(2); // 8 / 4 (4 way associative) = 2
@@ -48,25 +49,25 @@ describe('CacheSimulator', () => {
             expect(simulatedCache.cache[0].length).toBe(4); // Check first set to contain 4 cache lines
         });
         test('does not throw an error for valid numberOfBlocks or blockSize', () => {
-            expect(() => new CacheSimulator(4, 8, 'read-through', LRU)).not.toThrow();
-            expect(() => new CacheSimulator(512, 8, 'read-through', LRU)).not.toThrow();
-            expect(() => new CacheSimulator(4, 512, 'read-through', LRU)).not.toThrow();
-            expect(() => new CacheSimulator(8, 8, 'read-through', LRU)).not.toThrow();
+            expect(() => new CacheSimulator(4, 8, LOAD_THROUGH, LRU)).not.toThrow();
+            expect(() => new CacheSimulator(512, 8, LOAD_THROUGH, LRU)).not.toThrow();
+            expect(() => new CacheSimulator(4, 512, LOAD_THROUGH, LRU)).not.toThrow();
+            expect(() => new CacheSimulator(8, 8, LOAD_THROUGH, LRU)).not.toThrow();
         });
         test('throws an error for invalid numberOfBlocks or blockSize', () => {
-            expect(() => new CacheSimulator(2, 4, 'read-through', LRU)).toThrow(); // invalid number of block 2 < 4
-            expect(() => new CacheSimulator(8, 1, 'read-through', LRU)).toThrow(); // invalid block size 1 < 2
-            expect(() => new CacheSimulator(6, 4, 'read-through', LRU)).toThrow(); // invalid number of block, not a power of 2
-            expect(() => new CacheSimulator(8, 3, 'read-through', LRU)).toThrow(); // invalid block size, not a power of 2
+            expect(() => new CacheSimulator(2, 4, LOAD_THROUGH, LRU)).toThrow(); // invalid number of block 2 < 4
+            expect(() => new CacheSimulator(8, 1, LOAD_THROUGH, LRU)).toThrow(); // invalid block size 1 < 2
+            expect(() => new CacheSimulator(6, 4, LOAD_THROUGH, LRU)).toThrow(); // invalid number of block, not a power of 2
+            expect(() => new CacheSimulator(8, 3, LOAD_THROUGH, LRU)).toThrow(); // invalid block size, not a power of 2
         });
         test('throws an error for number of cache blocks at or exceeding 1024 blocks (main memory block size)', () => {
-            expect(() => new CacheSimulator(1024, 8, 'read-through', LRU)).toThrow();
-            expect(() => new CacheSimulator(2048, 8, 'read-through', LRU)).toThrow();
+            expect(() => new CacheSimulator(1024, 8, LOAD_THROUGH, LRU)).toThrow();
+            expect(() => new CacheSimulator(2048, 8, LOAD_THROUGH, LRU)).toThrow();
         });
     });
     describe('accessBlock bounds', () => {
         test('throws an error when blockNumber is out of bounds (0-1023)', () => {
-            const simulatedCache = new CacheSimulator(8, 4, 'read-through', LRU);
+            const simulatedCache = new CacheSimulator(8, 4, LOAD_THROUGH, LRU);
             expect(() => simulatedCache.accessBlock(-1)).toThrow('out of bounds');
             expect(() => simulatedCache.accessBlock(1024)).toThrow('out of bounds');
             expect(() => simulatedCache.accessBlock(0)).not.toThrow('out of bounds');
@@ -75,7 +76,7 @@ describe('CacheSimulator', () => {
     });
     describe('hits, misses, and set mapping', () => {
         test('register a MISS on a cold start and a HIT on subsequent access', () => {
-            const simulatedCache = new CacheSimulator(8, 4, 'read-through', LRU);
+            const simulatedCache = new CacheSimulator(8, 4, LOAD_THROUGH, LRU);
             
             const firstAccess = simulatedCache.accessBlock(4); // Set 0, even, Tag 2 is MISS
             expect(firstAccess).toBe(false);
@@ -91,7 +92,7 @@ describe('CacheSimulator', () => {
     });
     describe('eviction behavior', () => {
         test('evicts the victim way chosen by selectVictim when a set is full', () => {
-            const simulatedCache = new CacheSimulator(8, 4, 'read-through', LRU);
+            const simulatedCache = new CacheSimulator(8, 4, LOAD_THROUGH, LRU);
             selectVictim.mockReturnValue(2) //force eviction at Way 2 to isolate
 
             // 0,2,4,6 all go to set 0
@@ -112,7 +113,7 @@ describe('CacheSimulator', () => {
     });
     describe('run and snapshots', () => {
         test('resets state between runs and clones cacheGrid snapshots independently', () => {
-            const simulatedCache = new CacheSimulator(8, 4, 'read-through', LRU);
+            const simulatedCache = new CacheSimulator(8, 4, LOAD_THROUGH, LRU);
             const snapshots = simulatedCache.run([0, 2, 0]);
 
             expect(snapshots).toHaveLength(3);
