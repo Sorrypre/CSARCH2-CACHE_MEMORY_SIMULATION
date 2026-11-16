@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { CacheSimulator, isPowerOfTwo } from "../src/core/CacheSimulator";
-import { selectVictim } from "../src/core/Policies";
+import { LRU, MRU, selectVictim } from "../src/core/Policies";
 
 // Design of the test follow standard QA patterns
 // AAA 
@@ -9,6 +9,10 @@ import { selectVictim } from "../src/core/Policies";
 // Assert
 
 // Added clearMocks: true in vite.config.js so that I do not have to call clearAllMocks() before every test
+
+vi.mock('./Policies.js', () => ({
+    selectVictim: vi.fn(),
+}))
 
 // Test for isPowerOfTwo function
 describe('isPowerOfTwo', () => {
@@ -27,4 +31,34 @@ describe('isPowerOfTwo', () => {
         expect(isPowerOfTwo(-2)).toBe(false);
     });
 });
+
+describe('CacheSimulator', () => {
+    describe('constructor', () => {
+        test('initializes cache geometry correctly', () => {
+            // Simulated Cache Memory: 8 blocks, blockSize 4, 4-way associative so 2 sets
+            const simulatedCache = new CacheSimulator(8, 4, 'read-through', LRU);
+
+            expect(simulatedCache.cacheSize).toBe(32); // 8 * 4 = 32
+            expect(simulatedCache.numOfSets).toBe(2); // 8 / 4 (4 way associative) = 2
+            expect(simulatedCache.cache.length).toBe(2); // must be the same as the number of sets
+            expect(simulatedCache.cache[0].length).toBe(4); // Check first set to contain 4 cache lines
+        });
+        test('does not throw an error for valid numberOfBlocks or blockSize', () => {
+            expect(() => new CacheSimulator(4, 8, 'read-through', LRU)).not.toThrow();
+            expect(() => new CacheSimulator(512, 8, 'read-through', LRU)).not.toThrow();
+            expect(() => new CacheSimulator(4, 512, 'read-through', LRU)).not.toThrow();
+            expect(() => new CacheSimulator(8, 8, 'read-through', LRU)).not.toThrow();
+        });
+        test('throws an error for invalid numberOfBlocks or blockSize', () => {
+            expect(() => new CacheSimulator(2, 4, 'read-through', LRU)).toThrow(); // invalid number of block 2 < 4
+            expect(() => new CacheSimulator(8, 1, 'read-through', LRU)).toThrow(); // invalid block size 1 < 2
+            expect(() => new CacheSimulator(6, 4, 'read-through', LRU)).toThrow(); // invalid number of block, not a power of 2
+            expect(() => new CacheSimulator(8, 3, 'read-through', LRU)).toThrow(); // invalid block size, not a power of 2
+        });
+        test('throws and error for number of cache blocks exceeding 1024 (main memory block size)', () => {
+            expect(() => new CacheSimulator(1024, 8, 'read-through', LRU)).toThrow();
+            expect(() => new CacheSimulator(2048, 8, 'read-through', LRU)).toThrow();
+        })
+    })
+})
 
