@@ -63,53 +63,70 @@ describe('CacheSimulator', () => {
             expect(() => new CacheSimulator(1024, 8, 'read-through', LRU)).toThrow();
             expect(() => new CacheSimulator(2048, 8, 'read-through', LRU)).toThrow();
         });
-        describe('accessBlock bounds', () => {
-            test('throws an error when blockNumber is out of bounds (0-1023)', () => {
-                const simulatedCache = new CacheSimulator(8, 4, 'read-through', LRU);
-                expect(() => simulatedCache.accessBlock(-1)).toThrow('out of bounds');
-                expect(() => simulatedCache.accessBlock(1024)).toThrow('out of bounds');
-                expect(() => simulatedCache.accessBlock(0)).not.toThrow('out of bounds');
-                expect(() => simulatedCache.accessBlock(1023)).not.toThrow('out of bounds');
-            });
+    });
+    describe('accessBlock bounds', () => {
+        test('throws an error when blockNumber is out of bounds (0-1023)', () => {
+            const simulatedCache = new CacheSimulator(8, 4, 'read-through', LRU);
+            expect(() => simulatedCache.accessBlock(-1)).toThrow('out of bounds');
+            expect(() => simulatedCache.accessBlock(1024)).toThrow('out of bounds');
+            expect(() => simulatedCache.accessBlock(0)).not.toThrow('out of bounds');
+            expect(() => simulatedCache.accessBlock(1023)).not.toThrow('out of bounds');
         });
+    });
+    describe('hits, misses, and set mapping', () => {
+        test('register a MISS on a cold start and a HIT on subsequent access', () => {
+            const simulatedCache = new CacheSimulator(8, 4, 'read-through', LRU);
+            
+            const firstAccess = simulatedCache.accessBlock(4); // Set 0, even, Tag 2 is MISS
+            expect(firstAccess).toBe(false);
+            expect(simulatedCache.cache_misses).toBe(1); // count of miss updated to 1
+            expect(simulatedCache.cache_hits).toBe(0); // no hits yet
 
-        describe('hits, misses, and set mapping', () => {
-            test('register a MISS on a cold start and a HIT on subsequent access', () => {
-                const simulatedCache = new CacheSimulator(8, 4, 'read-through', LRU);
-                
-                const firstAccess = simulatedCache.accessBlock(4); // Set 0, even, Tag 2 is MISS
-                expect(firstAccess).toBe(false);
-                expect(simulatedCache.cache_misses).toBe(1); // count of miss updated to 1
-                expect(simulatedCache.cache_hits).toBe(0); // no hits yet
-
-                const secondAccess = simulatedCache.accessBlock(4); // Access the previous missed block, HIT
-                expect(secondAccess).toBe(true);
-                expect(simulatedCache.cache_misses).toBe(1);
-                expect(simulatedCache.cache_hits).toBe(1); // now there is a HIT
-                expect(simulatedCache.cache[0][0].lastUsed).toBe(2)
-            });
+            const secondAccess = simulatedCache.accessBlock(4); // Access the previous missed block, HIT
+            expect(secondAccess).toBe(true);
+            expect(simulatedCache.cache_misses).toBe(1);
+            expect(simulatedCache.cache_hits).toBe(1); // now there is a HIT
+            expect(simulatedCache.cache[0][0].lastUsed).toBe(2)
         });
-        describe('eviction behavior', () => {
-            test('evicts the victim way chosen by selectVictim when a set is full', () => {
-                const simulatedCache = new CacheSimulator(8, 4, 'read-through', LRU);
-                selectVictim.mockReturnValue(2) //force eviction at Way 2 to isolate
+    });
+    describe('eviction behavior', () => {
+        test('evicts the victim way chosen by selectVictim when a set is full', () => {
+            const simulatedCache = new CacheSimulator(8, 4, 'read-through', LRU);
+            selectVictim.mockReturnValue(2) //force eviction at Way 2 to isolate
 
-                // 0,2,4,6 all go to set 0
-                simulatedCache.accessBlock(0);
-                simulatedCache.accessBlock(2);
-                simulatedCache.accessBlock(4); // this will be the one evicted because we forced it
-                simulatedCache.accessBlock(6);
+            // 0,2,4,6 all go to set 0
+            simulatedCache.accessBlock(0);
+            simulatedCache.accessBlock(2);
+            simulatedCache.accessBlock(4); // this will be the one evicted because we forced it
+            simulatedCache.accessBlock(6);
 
 
-                const result = simulatedCache.accessBlock(8);
+            const result = simulatedCache.accessBlock(8);
 
-                expect(result).toBe(false);
-                expect(selectVictim).toHaveBeenCalledTimes(1);
-                expect(simulatedCache.cache[0][2].blockNumber).toBe(8);
-                expect(simulatedCache.snapshots.at(-1).evictedBlock).toBe(4) //last item which is most recent snapshot [sim.snapshots.length - 1]
-                expect(simulatedCache.snapshots.at(-1).logMessage).toContain('Evicted Block 4 at Way 2'); // Verify log message
-            });
-        })
-    })
-})
+            expect(result).toBe(false);
+            expect(selectVictim).toHaveBeenCalledTimes(1);
+            expect(simulatedCache.cache[0][2].blockNumber).toBe(8);
+            expect(simulatedCache.snapshots.at(-1).evictedBlock).toBe(4) // last item which is most recent snapshot [sim.snapshots.length - 1]
+            expect(simulatedCache.snapshots.at(-1).logMessage).toContain('Evicted Block 4 at Way 2'); // Verify log message
+        });
+    });
+    describe('run and snapshots', () => {
+        test('resets state between runs and clones cacheGrid snapshots independently', () => {
+            const simulatedCache = new CacheSimulator(8, 4, 'read-through', LRU);
+            const snapshots = simulatedCache.run([0, 2, 0]);
+
+            expect(snapshots).toHaveLength(3);
+            expect(snapshots[0].status).toBe('MISS');
+            expect(snapshots[1].status).toBe('MISS');
+            expect(snapshots[2].status).toBe('HIT');
+
+            expect(snapshots[0].cacheGrid[0][1].valid).toBe(false);
+            expect(snapshots[1].cacheGrid[0][1].valid).toBe(true);
+
+            const secondRun = simulatedCache.run([1]);
+            expect(secondRun).toHaveLength(1);
+            expect(simulatedCache.cache_hits).toBe(0)
+        });
+    });
+});
 
