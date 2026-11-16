@@ -1,5 +1,8 @@
 import { selectVictim } from "./Policies.js";
 
+const MAIN_MEMORY_BLOCKS = 1024;
+const MAX_CACHE_BLOCKS = MAIN_MEMORY_BLOCKS / 2;    // 512
+
 export class CacheSimulator {
     /*
     This class simulates a cache memory system.
@@ -7,21 +10,21 @@ export class CacheSimulator {
     The cache size is calculated based on the number of blocks and block size.
      */
     constructor(numberOfBlocks, blockSize, readPolicy, replacementPolicy) {
-        if (numberOfBlocks < 4 && !isPowerOfTwo(numberOfBlocks)) {
-            throw new Error("numberOfBlocks must be at least 4 and a power of two.");
+        if (numberOfBlocks < 4 || numberOfBlocks > MAX_CACHE_BLOCKS || !isPowerOfTwo(numberOfBlocks)) {
+            throw new Error(`numberOfBlocks must be a power of two between 4 and ${MAX_CACHE_BLOCKS}.`);
         }
 
-        if (blockSize < 2 && !isPowerOfTwo(blockSize)) {
+        if (blockSize < 2 || !isPowerOfTwo(blockSize)) {
         throw new Error("blockSize must be at least 2 and a power of two.");
         }
 
         this.numberOfBlocks = numberOfBlocks;
         this.blockSize = blockSize;
         this.readPolicy = readPolicy;
-        this.replacementPolicy = replacementPolicy;      // default replacement policy is LRU
+        this.replacementPolicy = replacementPolicy;     // default replacement policy is LRU
 
-        this.mainMemory = 1024          //1024 bytes of main memory
-        this.associativity = 4          //4-way block set associative cache
+        this.mainMemory = MAIN_MEMORY_BLOCKS;           // 1024 bytes of main memory
+        this.associativity = 4;                         // 4-way block set associative cache
         this.cacheSize = this.numberOfBlocks * this.blockSize;
         this.numOfSets = this.numberOfBlocks / this.associativity;
 
