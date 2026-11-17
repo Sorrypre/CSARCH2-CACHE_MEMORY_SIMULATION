@@ -4,7 +4,7 @@ import { LRU, MRU, selectVictim } from "../src/core/Policies";
 import { NON_LOAD_THROUGH, LOAD_THROUGH } from "../src/core/StatsCalculator";
 
 // Helper functions to generate sequences matching the specification
-function generateSequentialSequence(n) {
+export function generateSequentialSequence(n) {
     const sequence = []; 
      
     for (let repeat = 0; repeat < 2; repeat++) {
@@ -15,7 +15,7 @@ function generateSequentialSequence(n) {
     return sequence;
 }
 
-function generateMidRepeatSequence(n) {
+export function generateMidRepeatSequence(n) {
     const sequence = [];
 
     for (let block = 0; block <= n - 1; block++) {
@@ -38,7 +38,7 @@ function generateMidRepeatSequence(n) {
     return sequence;
 }
 
-function generateRandomSequence(length = 64, mainMemorySize = 1024) {
+export function generateRandomSequence(length = 64, mainMemorySize = 1024) {
     const sequence = [];
 
     for (let i = 0; i < length; i++) {
