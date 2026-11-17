@@ -72,6 +72,9 @@ describe('Sequence Tests (4-Way BSA: LRU vs MRU', () => {
 
         //EXPECTED: MRU has more hits than the LRU
         expect(mruSim.cache_hits).toBeGreaterThan(lruSim.cache_hits);
+
+        expect(lruSim.cache_hits + lruSim.cache_misses).toBe(seq.length);
+        expect(mruSim.cache_hits + mruSim.cache_misses).toBe(seq.length);
     });
 
     test('Test 2: Mid-Repeat Blocks Sequence', () => {
@@ -110,7 +113,7 @@ describe('Sequence Tests (4-Way BSA: LRU vs MRU', () => {
         mruSim.run(seq);
 
         expect(lruSim.cache_hits + lruSim.cache_misses).toBe(seq.length);
-        expect(mruSim.cache_hits + mruSim.cache_misses).toBe(seq.length)
+        expect(mruSim.cache_hits + mruSim.cache_misses).toBe(seq.length);
     });
 
 });
