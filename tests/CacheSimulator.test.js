@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { CacheSimulator, isPowerOfTwo } from "../src/core/CacheSimulator";
 import { LRU, MRU, selectVictim } from "../src/core/Policies";
-import { NON_LOAD_THROUGH, LOAD_THROUGH } from "../src/core/StatsCalculator"
+import { NON_LOAD_THROUGH, LOAD_THROUGH } from "../src/core/StatsCalculator";
 
 // Design of the test follow standard QA patterns
 // AAA 
