@@ -9,21 +9,20 @@
  * share the same lastUsed value, so there are never ties to break.
  */
 
-export const LRU = "LRU"; // Least Recently Used
-export const MRU = "MRU"; // Most Recently Used
+import { ReplacementPolicy } from "./Constants";
 
 /**
  * Pick which way (0-3) to evict from a FULL set.
  *
- *   LRU -> the line with the SMALLEST lastUsed (oldest use)
- *   MRU -> the line with the LARGEST  lastUsed (newest use)
+ *   ReplacementPolicy.LRU -> the line with the SMALLEST lastUsed (oldest use)
+ *   ReplacementPolicy.MRU -> the line with the LARGEST  lastUsed (newest use)
  *
  * @param {Array}  set    - the 4 lines of one cache set
- * @param {string} policy - "LRU" or "MRU"
+ * @param {string} policy - "ReplacementPolicy.LRU" or "ReplacementPolicy.MRU"
  * @returns {number} index of the way that should be replaced
  */
 export function selectVictim(set, policy) {
-    if (policy !== LRU && policy !== MRU) {
+    if (policy !== ReplacementPolicy.LRU && policy !== ReplacementPolicy.MRU) {
         throw new Error(`Unknown replacement policy: ${policy}`);
     }
 
@@ -33,8 +32,8 @@ export function selectVictim(set, policy) {
         const candidate = set[way].lastUsed;
         const current = set[victim].lastUsed;
 
-        // LRU keeps the smallest timestamp, MRU keeps the largest.
-        const isBetterVictim = policy === LRU ? candidate < current : candidate > current;
+        // ReplacementPolicy.LRU keeps the smallest timestamp, ReplacementPolicy.MRU keeps the largest.
+        const isBetterVictim = policy === ReplacementPolicy.LRU ? candidate < current : candidate > current;
 
         if (isBetterVictim) victim = way;
     }
