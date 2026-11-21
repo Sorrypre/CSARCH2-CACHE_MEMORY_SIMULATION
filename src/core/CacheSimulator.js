@@ -1,8 +1,5 @@
 import { selectVictim } from "./Policies.js";
-
-const MAIN_MEMORY_BLOCKS = 1024;
-const MAX_CACHE_BLOCKS = MAIN_MEMORY_BLOCKS / 2;    // 512
-
+import { MAIN_MEMORY_BLOCKS, MAX_CACHE_BLOCKS, ReadPolicy, ReplacementPolicy, AccessStatus } from "./Constants.js";
 export class CacheSimulator {
     /*
     This class simulates a cache memory system.
@@ -18,10 +15,18 @@ export class CacheSimulator {
         throw new Error("blockSize must be at least 2 and a power of two.");
         }
 
+        if (readPolicy !== ReadPolicy.NON_LOAD_THROUGH && readPolicy !== ReadPolicy.LOAD_THROUGH) {
+            throw new Error(`Unknown read policy: ${readPolicy}`);
+        }
+
+        if (replacementPolicy !== ReplacementPolicy.LRU && replacementPolicy !== ReplacementPolicy.MRU) {
+            throw new Error(`Unknown replacement policy: ${replacementPolicy}`);
+        }
+
         this.numberOfBlocks = numberOfBlocks;
         this.blockSize = blockSize;
         this.readPolicy = readPolicy;
-        this.replacementPolicy = replacementPolicy;     // default replacement policy is LRU
+        this.replacementPolicy = replacementPolicy;     // default replacement policy is ReplacementPolicy.LRU
 
         this.mainMemory = MAIN_MEMORY_BLOCKS;           // 1024 bytes of main memory
         this.associativity = 4;                         // 4-way block set associative cache
@@ -70,16 +75,16 @@ export class CacheSimulator {
         setIndex: The index of the set in the cache.
         tag: The tag of the block being accessed.
         way: The way (0-3) in the set where the block is stored.
-        status: "HIT" or "MISS" indicating whether the access was a hit or a miss.
+        status: AccessStatus.HIT or AccessStatus.MISS indicating whether the access was a hit or a miss.
 
      */
     recordSnapshot({ blockNumber, setIndex, tag, way, status, evictedBlock }) {
         const cacheGridCopy = structuredClone(this.cache); // Deep copy of the cache state
         let logMessage = "";
 
-        if (status === "HIT") {
+        if (status === AccessStatus.HIT) {
             logMessage = `Step ${this.step}: Access Block ${blockNumber} (Set ${setIndex}, Tag ${tag}) - HIT [Way ${way}]`;
-        } else if (status === "MISS" && evictedBlock != null) {
+        } else if (status === AccessStatus.MISS && evictedBlock != null) {
             logMessage = `Step ${this.step}: Access Block ${blockNumber} (Set ${setIndex}, Tag ${tag}) - MISS [Evicted Block ${evictedBlock} at Way ${way}]`;
         } else {
             logMessage = `Step ${this.step}: Access Block ${blockNumber} (Set ${setIndex}, Tag ${tag}) - MISS [Loaded into empty Way ${way}]`;
@@ -117,7 +122,7 @@ export class CacheSimulator {
         if (hitIndex !== -1) {
             set[hitIndex].lastUsed = this.step;
             this.cache_hits += 1;
-            this.recordSnapshot({ blockNumber, setIndex, tag, way: hitIndex, status: "HIT", evictedBlock: null });
+            this.recordSnapshot({ blockNumber, setIndex, tag, way: hitIndex, status: AccessStatus.HIT, evictedBlock: null });
             return true;
         }
 
@@ -134,9 +139,9 @@ export class CacheSimulator {
                 lastUsed: this.step,
                 blockNumber,
             };
-            this.recordSnapshot({ blockNumber, setIndex, tag, way: emptyBlockIndex, status: "MISS", evictedBlock: null });
+            this.recordSnapshot({ blockNumber, setIndex, tag, way: emptyBlockIndex, status: AccessStatus.MISS, evictedBlock: null });
         } else {
-            // Cache Miss & Set Full: Evict via LRU or MRU
+            // Cache Miss & Set Full: Evict via ReplacementPolicy.LRU or ReplacementPolicy.MRU
             const victimWay = selectVictim(set, this.replacementPolicy);
             const evictedBlock = set[victimWay].blockNumber;
 
@@ -146,7 +151,7 @@ export class CacheSimulator {
                 lastUsed: this.step,
                 blockNumber,
             };
-            this.recordSnapshot({ blockNumber, setIndex, tag, way: victimWay, status: "MISS", evictedBlock });
+            this.recordSnapshot({ blockNumber, setIndex, tag, way: victimWay, status: AccessStatus.MISS, evictedBlock });
         }
         return false;
     }
