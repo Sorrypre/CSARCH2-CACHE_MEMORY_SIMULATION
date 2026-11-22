@@ -1,5 +1,4 @@
-export const NON_LOAD_THROUGH = "non-load-through";
-export const LOAD_THROUGH = "load-through";
+import { ReadPolicy } from "./Constants";
 
 export function calculateStats({
     cacheHits,
@@ -9,6 +8,23 @@ export function calculateStats({
     cacheAccessTime = 1, // default cache access time in cycles 1ns
     memoryAccessTime = 10, // default main memory access time in cycles 10ns
     }) {
+
+    if (readPolicy !== ReadPolicy.NON_LOAD_THROUGH && readPolicy !== ReadPolicy.LOAD_THROUGH) {
+        throw new Error(`Unknown read policy: ${readPolicy}`);
+    }
+
+    if (cacheHits < 0 || cacheMisses < 0) {
+        throw new Error("cacheHits and cacheMisses cannot be negative.");
+    }
+
+    if (blockSize < 2) {
+        throw new Error("blockSize must be at least 2.");
+    }
+
+    if (cacheAccessTime < 0 || memoryAccessTime < 0) {
+        throw new Error("Access times cannot be negative.");
+    }
+
     const totalAccesses = cacheHits + cacheMisses;
 
     if (totalAccesses === 0) {
@@ -28,10 +44,10 @@ export function calculateStats({
     const missRate = cacheMisses / totalAccesses;
 
     let missPenalty = 0;
-    if (readPolicy === NON_LOAD_THROUGH) {
+    if (readPolicy === ReadPolicy.NON_LOAD_THROUGH) {
         missPenalty = cacheAccessTime + (memoryAccessTime * blockSize) + cacheAccessTime;
     }
-    else if (readPolicy === LOAD_THROUGH) {
+    else if (readPolicy === ReadPolicy.LOAD_THROUGH) {
         // load-through policy
         missPenalty = cacheAccessTime + memoryAccessTime;
     }
